@@ -454,23 +454,42 @@ async function startServer() {
     return res.json({ success: true, user });
   });
 
-  // Quick Donation ("fund a child's education" - takes <30 seconds)
+  // Volunteer Donation with Selected Cause
   app.post('/api/volunteer/donate', (req, res) => {
     const { email, amount, cause, donorName } = req.body;
     const numAmount = parseInt(amount, 10) || 500;
     const normalizedEmail = email?.trim().toLowerCase();
-    const user = usersDb.get(normalizedEmail);
+    let user = normalizedEmail ? usersDb.get(normalizedEmail) : undefined;
 
     const donation = {
       id: `don-${Date.now()}`,
       amount: numAmount,
-      cause: cause || "Child's Annual Learning Books & Nutrition Kit",
+      cause: cause || "Sponsor a child's education for a month",
       date: new Date().toISOString().split('T')[0],
       transactionId: `TXN-BS-${Math.floor(100000 + Math.random() * 900000)}`,
       donorName: donorName || (user ? user.name : 'Generous Guardian'),
     };
 
+    if (!user && normalizedEmail) {
+      user = {
+        id: `usr-${Date.now()}`,
+        email: normalizedEmail,
+        name: donorName || 'Generous Guardian',
+        avatar: 'boy',
+        referralCode: `BAL-${normalizedEmail.slice(0, 4).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`,
+        credits: 100,
+        verifiedHours: 0,
+        completedSessionsCount: 0,
+        badge: 'None',
+        sessions: [],
+        donations: [],
+        referredCount: 0,
+      };
+      usersDb.set(normalizedEmail, user);
+    }
+
     if (user) {
+      user.donations = user.donations || [];
       user.donations.unshift(donation);
       // Give gratitude donor credits
       user.credits += Math.min(100, Math.floor(numAmount / 10));

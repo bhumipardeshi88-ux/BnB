@@ -197,12 +197,12 @@ export function VolunteerPath({
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">
-                  Quick Impact
+                  Choose a Cause
                 </span>
                 <div className="text-base font-bold text-stone-900 font-display mt-0.5">
                   Donate
                 </div>
-                <div className="text-xs text-stone-600">Fund a child's education</div>
+                <div className="text-xs text-stone-600">Sponsor education, meals, or supplies</div>
               </div>
             </div>
             <ArrowRight className="w-5 h-5 text-rose-600 group-hover:translate-x-1 transition-transform" />
