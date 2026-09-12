@@ -2,12 +2,17 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { INITIAL_ADOPTION_CENTERS, VOLUNTEER_OPPORTUNITIES } from './src/data/seedData';
-import { AdoptionCenter, UserProfile, VolunteerSession, AppointmentBooking } from './src/types';
+import { AdoptionCenter, UserProfile, VolunteerSession, AppointmentBooking, DEFAULT_GUEST_USER, DEFAULT_TEST_USER } from './src/types';
 
 // In-memory data store for BalSetu
 const usersDb = new Map<string, UserProfile>();
 const centersDb: AdoptionCenter[] = JSON.parse(JSON.stringify(INITIAL_ADOPTION_CENTERS));
 const appointmentsDb: AppointmentBooking[] = [];
+
+// Seed the prototype test account (Email: abcd, Password: abcd)
+usersDb.set('abcd', {
+  ...DEFAULT_TEST_USER,
+});
 
 // Seed an initial demo user so reviewers can test immediately
 usersDb.set('parent@example.com', {
@@ -119,6 +124,17 @@ async function startServer() {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Prototype test account bypass: email "abcd" and password "abcd"
+    if (normalizedEmail === 'abcd' && password.trim() === 'abcd') {
+      let testUser = usersDb.get('abcd');
+      if (!testUser) {
+        testUser = { ...DEFAULT_TEST_USER };
+        usersDb.set('abcd', testUser);
+      }
+      return res.json({ success: true, user: testUser });
+    }
+
     let user = usersDb.get(normalizedEmail);
 
     if (!user) {
@@ -145,6 +161,16 @@ async function startServer() {
     }
 
     return res.json({ success: true, user });
+  });
+
+  // Auth: Continue as Guest (bypasses account creation for prototypes/demos)
+  app.post('/api/auth/guest', (_req, res) => {
+    let guest = usersDb.get(DEFAULT_GUEST_USER.email);
+    if (!guest) {
+      guest = { ...DEFAULT_GUEST_USER };
+      usersDb.set(DEFAULT_GUEST_USER.email, guest);
+    }
+    return res.json({ success: true, user: guest });
   });
 
   // Auth: Signup

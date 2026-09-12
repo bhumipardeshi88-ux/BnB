@@ -101,3 +101,33 @@ export interface UserProfile {
   donations: DonationRecord[];
   referredCount: number;
 }
+
+export const DEFAULT_GUEST_USER: UserProfile = {
+  id: 'guest-explorer',
+  email: 'guest@balsetu.org',
+  name: 'Guest Explorer',
+  avatar: 'boy',
+  referralCode: 'BAL-GUEST',
+  credits: 50,
+  verifiedHours: 0,
+  completedSessionsCount: 0,
+  badge: 'None',
+  sessions: [],
+  donations: [],
+  referredCount: 0,
+};
+
+export const DEFAULT_TEST_USER: UserProfile = {
+  id: 'usr-test-abcd',
+  email: 'abcd',
+  name: 'Test Explorer (abcd)',
+  avatar: 'boy',
+  referralCode: 'BAL-ABCD01',
+  credits: 100,
+  verifiedHours: 2,
+  completedSessionsCount: 1,
+  badge: 'Bronze',
+  sessions: [],
+  donations: [],
+  referredCount: 0,
+};

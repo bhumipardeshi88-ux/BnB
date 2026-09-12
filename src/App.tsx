@@ -11,7 +11,7 @@ import { DonationModal } from './components/DonationModal';
 import { CertificateModal } from './components/CertificateModal';
 import { LorModal } from './components/LorModal';
 import { GovernmentGuideModal } from './components/GovernmentGuideModal';
-import { AdoptionCenter, UserProfile, VolunteerOpportunity } from './types';
+import { AdoptionCenter, UserProfile, VolunteerOpportunity, DEFAULT_GUEST_USER } from './types';
 import { VOLUNTEER_OPPORTUNITIES } from './data/seedData';
 
 type ViewState =
@@ -78,16 +78,18 @@ export default function App() {
   };
 
   const handleNavigateHome = () => {
-    if (!user) {
-      setHistory([{ type: 'auth' }]);
-    } else {
-      setHistory([{ type: 'role_select' }]);
-    }
+    setHistory([{ type: 'role_select' }]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLoginSuccess = (authenticatedUser: UserProfile) => {
     setUser(authenticatedUser);
+    setHistory([{ type: 'role_select' }]);
+  };
+
+  const handleContinueAsGuest = (guestUser?: UserProfile) => {
+    const activeGuest = guestUser || DEFAULT_GUEST_USER;
+    setUser(activeGuest);
     setHistory([{ type: 'role_select' }]);
   };
 
@@ -124,9 +126,7 @@ export default function App() {
         onBack={popView}
         onLogout={handleLogout}
         onOpenProfile={() => {
-          if (user) {
-            pushView({ type: 'volunteer_dashboard' });
-          }
+          pushView({ type: 'volunteer_dashboard' });
         }}
         currentTitle={getCurrentTitle()}
         onNavigateHome={handleNavigateHome}
@@ -135,12 +135,15 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
         {currentView.type === 'auth' && (
-          <AuthModal onSuccess={handleLoginSuccess} />
+          <AuthModal
+            onSuccess={handleLoginSuccess}
+            onContinueAsGuest={handleContinueAsGuest}
+          />
         )}
 
-        {currentView.type === 'role_select' && user && (
+        {currentView.type === 'role_select' && (
           <RoleSelection
-            user={user}
+            user={user || DEFAULT_GUEST_USER}
             onSelectAdopt={() => pushView({ type: 'adopt_list' })}
             onSelectVolunteer={() => pushView({ type: 'volunteer_dashboard' })}
           />
@@ -156,14 +159,14 @@ export default function App() {
         {currentView.type === 'center_detail' && (
           <CenterDetails
             center={currentView.center}
-            currentUser={user}
+            currentUser={user || DEFAULT_GUEST_USER}
             onOpenGovGuide={() => setShowGovGuideModal(true)}
           />
         )}
 
-        {currentView.type === 'volunteer_dashboard' && user && (
+        {currentView.type === 'volunteer_dashboard' && (
           <VolunteerPath
-            user={user}
+            user={user || DEFAULT_GUEST_USER}
             onSelectDonate={() => setShowDonationModal(true)}
             onSelectTeach={() => pushView({ type: 'volunteer_opportunities' })}
             onOpenCertificate={() => setShowCertModal(true)}

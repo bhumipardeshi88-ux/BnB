@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Sparkles, ArrowRight, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { Mail, Lock, User, Sparkles, ArrowRight, ShieldCheck, HeartHandshake, Compass, KeyRound } from 'lucide-react';
 import { AvatarSelector } from './AvatarPicker';
-import { AvatarType, UserProfile } from '../types';
+import { AvatarType, UserProfile, DEFAULT_GUEST_USER, DEFAULT_TEST_USER } from '../types';
 
 interface AuthModalProps {
   onSuccess: (user: UserProfile) => void;
+  onContinueAsGuest?: (guestUser?: UserProfile) => void;
 }
 
-export function AuthModal({ onSuccess }: AuthModalProps) {
+export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +18,36 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleGuestFlow = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        if (onContinueAsGuest) {
+          onContinueAsGuest(data.user);
+        } else {
+          onSuccess(data.user);
+        }
+        return;
+      }
+    } catch {
+      // Fallback seamlessly to local guest profile
+    } finally {
+      setLoading(false);
+    }
+
+    if (onContinueAsGuest) {
+      onContinueAsGuest(DEFAULT_GUEST_USER);
+    } else {
+      onSuccess(DEFAULT_GUEST_USER);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -25,12 +56,38 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
+    // Prototype test account bypass: email "abcd" and password "abcd"
+    if (normalizedEmail === 'abcd' && normalizedPassword === 'abcd') {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'abcd', password: 'abcd' }),
+        });
+        const data = await res.json();
+        if (res.ok && data.user) {
+          onSuccess(data.user);
+          return;
+        }
+      } catch {
+        // Fallback directly to DEFAULT_TEST_USER if server request is delayed or offline
+      } finally {
+        setLoading(false);
+      }
+      onSuccess(DEFAULT_TEST_USER);
+      return;
+    }
+
     setLoading(true);
     try {
       const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/login';
       const body = isSignUp
-        ? { email, password, name, avatar, referralCode: referralCode.trim() }
-        : { email, password };
+        ? { email: email.trim(), password: password.trim(), name, avatar, referralCode: referralCode.trim() }
+        : { email: email.trim(), password: password.trim() };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -51,23 +108,31 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
     }
   };
 
-  const handleDemoLogin = async (demoEmail: string) => {
+  const handleDemoLogin = async (demoEmail: string, demoPassword = 'password123') => {
     setLoading(true);
     setError(null);
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: demoEmail, password: 'demo-password-123' }),
+        body: JSON.stringify({ email: demoEmail, password: demoPassword }),
       });
       const data = await res.json();
       if (res.ok && data.user) {
         onSuccess(data.user);
+        return;
       }
-    } catch (err: any) {
-      setError('Demo login failed. Please enter your email manually.');
+    } catch {
+      // Fallback
     } finally {
       setLoading(false);
+    }
+
+    if (demoEmail === 'abcd') {
+      onSuccess(DEFAULT_TEST_USER);
     }
   };
 
@@ -77,8 +142,26 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
         {/* Soft top gradient accent */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400" />
 
+        {/* Top bar with quick Skip button */}
+        <div className="flex items-center justify-between pt-1 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+            Prototype Preview
+          </span>
+          <button
+            id="auth-skip-top-btn"
+            type="button"
+            onClick={handleGuestFlow}
+            disabled={loading}
+            className="text-xs font-bold text-stone-600 hover:text-amber-700 bg-stone-100 hover:bg-amber-100/70 px-3 py-1 rounded-full transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+            title="Skip sign in and enter prototype"
+          >
+            <span>Skip</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Brand header */}
-        <div className="text-center mb-6 pt-2">
+        <div className="text-center mb-5">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 mb-3 shadow-xs">
             <HeartHandshake className="w-7 h-7" />
           </div>
@@ -90,20 +173,62 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
           </p>
         </div>
 
-        {/* Quick Demo Login shortcuts for fast review */}
-        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 mb-6">
+        {/* Prominent Continue as Guest / Skip Button */}
+        <div className="mb-6 space-y-2">
+          <button
+            id="btn-continue-as-guest"
+            type="button"
+            onClick={handleGuestFlow}
+            disabled={loading}
+            className="w-full py-3.5 px-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md hover:shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer group"
+          >
+            <Compass className="w-4 h-4 text-white group-hover:rotate-45 transition-transform" />
+            <span>Continue as Guest</span>
+            <span className="text-[11px] font-normal text-amber-100 bg-amber-600/70 px-2 py-0.5 rounded-full">
+              No account needed
+            </span>
+            <ArrowRight className="w-4 h-4 ml-0.5 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+          <p className="text-[11px] text-center text-stone-500">
+            Tap above to explore the main screen, adoption agencies, and volunteer hub directly.
+          </p>
+        </div>
+
+        {/* Visual Divider */}
+        <div className="relative flex items-center my-5">
+          <div className="grow border-t border-stone-200"></div>
+          <span className="shrink mx-3 text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+            or sign in with an account
+          </span>
+          <div className="grow border-t border-stone-200"></div>
+        </div>
+
+        {/* Quick Demo Login shortcuts */}
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 mb-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-600" /> Instant Quick Demo
+              <Sparkles className="w-3 h-3 text-amber-600" /> Instant Demo Profiles
             </span>
-            <span className="text-[10px] text-amber-700">1-click test</span>
+            <span className="text-[10px] text-amber-700">Optional</span>
           </div>
+
+          {/* Prototype Test Account abcd */}
+          <button
+            id="demo-test-abcd-btn"
+            type="button"
+            onClick={() => handleDemoLogin('abcd', 'abcd')}
+            className="w-full mb-2 px-3 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white hover:bg-amber-700 transition-colors active:scale-98 shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Login with Test Account (abcd / abcd)</span>
+          </button>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               id="demo-parent-btn"
               type="button"
               onClick={() => handleDemoLogin('parent@example.com')}
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-stone-800 hover:bg-amber-100 transition-colors active:scale-98 shadow-2xs text-center"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-stone-800 hover:bg-amber-100 transition-colors active:scale-98 shadow-2xs text-center cursor-pointer"
             >
               Test as Parent
             </button>
@@ -111,7 +236,7 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
               id="demo-volunteer-btn"
               type="button"
               onClick={() => handleDemoLogin('volunteer@example.com')}
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-amber-600 text-white hover:bg-amber-700 transition-colors active:scale-98 shadow-2xs text-center"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-stone-800 hover:bg-amber-100 transition-colors active:scale-98 shadow-2xs text-center cursor-pointer"
             >
               Test as Volunteer
             </button>
@@ -181,17 +306,20 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
 
           <div>
             <label className="text-xs font-semibold text-stone-700 block mb-1.5">
-              Email Address
+              Email Address or Username
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="auth-email-input"
-                type="email"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="abcd or you@example.com"
                 className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-hidden transition-all bg-white"
               />
             </div>
@@ -209,9 +337,22 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="abcd or your password"
                 className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-hidden transition-all bg-white"
               />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-stone-500 mt-1 px-1">
+              <span>Test Account:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('abcd');
+                  setPassword('abcd');
+                }}
+                className="text-amber-700 font-semibold hover:underline cursor-pointer"
+              >
+                Autofill "abcd" / "abcd"
+              </button>
             </div>
           </div>
 
@@ -261,7 +402,19 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
           </button>
         </form>
 
-        <div className="mt-5 text-center">
+        {/* Bottom Skip to Guest option */}
+        <div className="mt-4 pt-3 border-t border-stone-100 text-center">
+          <button
+            id="auth-skip-bottom-btn"
+            type="button"
+            onClick={handleGuestFlow}
+            className="text-xs font-medium text-stone-500 hover:text-amber-800 transition-colors cursor-pointer"
+          >
+            Just exploring the prototype? <span className="underline font-bold text-amber-700">Continue as Guest</span>
+          </button>
+        </div>
+
+        <div className="mt-4 text-center">
           <p className="text-xs text-stone-500 flex items-center justify-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Secure, private & child confidentiality protected</span>

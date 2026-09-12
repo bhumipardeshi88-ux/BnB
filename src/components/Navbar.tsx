@@ -109,23 +109,41 @@ export function Navbar({
                 )}
               </button>
 
+              {/* Guest mode badge or Switch/Sign In option */}
+              {user.id === 'guest-explorer' ? (
+                <button
+                  id="nav-guest-badge"
+                  type="button"
+                  onClick={onLogout}
+                  title="Currently in Guest mode. Click to sign in or create account."
+                  className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-semibold hover:bg-amber-200 transition-colors"
+                >
+                  <span>Guest</span>
+                  <span className="text-[9px] text-amber-600 font-normal underline">Sign in?</span>
+                </button>
+              ) : null}
+
               {/* Logout button */}
               <button
                 id="nav-logout-button"
                 type="button"
                 onClick={onLogout}
-                title="Log Out"
-                aria-label="Log Out"
+                title={user.id === 'guest-explorer' ? 'Exit Guest Mode' : 'Log Out'}
+                aria-label={user.id === 'guest-explorer' ? 'Exit Guest Mode' : 'Log Out'}
                 className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             </>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-              <ShieldCheck className="w-4 h-4 text-amber-600" />
-              <span>Safe & Confidential</span>
-            </div>
+            <button
+              id="nav-login-link-btn"
+              type="button"
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            >
+              <span>Sign In</span>
+            </button>
           )}
         </div>
       </div>
