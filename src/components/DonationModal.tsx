@@ -23,7 +23,7 @@ interface DonationModalProps {
   userEmail: string;
   userName: string;
   onClose: () => void;
-  onSuccess: (donation: DonationRecord, updatedUser: any) => void;
+  onSuccess: (donation: DonationRecord, updatedUser?: any) => void;
 }
 
 export interface DonationOption {
@@ -143,32 +143,13 @@ export function DonationModal({
     }
   };
 
-  const handleCompletePayment = async (e: React.FormEvent) => {
+  const handleCompletePayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount <= 0) return;
 
     setLoading(true);
-    try {
-      const res = await fetch('/api/volunteer/donate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userEmail,
-          amount,
-          donorName: donorName.trim() || userName || 'Generous Guardian',
-          cause: selectedOption.title,
-        }),
-      });
 
-      const data = await res.json();
-      if (data.success && data.donation) {
-        setReceipt(data.donation);
-        setStep('receipt');
-        onSuccess(data.donation, data.user);
-      }
-    } catch (err) {
-      console.error(err);
-      // Fallback local receipt if network fails
+    setTimeout(() => {
       const fallbackDonation: DonationRecord = {
         id: `don-${Date.now()}`,
         amount,
@@ -179,9 +160,9 @@ export function DonationModal({
       };
       setReceipt(fallbackDonation);
       setStep('receipt');
-    } finally {
       setLoading(false);
-    }
+      onSuccess(fallbackDonation);
+    }, 500);
   };
 
   const renderOptionIcon = (iconType: DonationOption['icon']) => {

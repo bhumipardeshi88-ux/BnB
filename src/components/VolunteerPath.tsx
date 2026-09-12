@@ -47,71 +47,72 @@ export function VolunteerPath({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAvatarChange = async (type: 'boy' | 'girl') => {
-    try {
-      const res = await fetch('/api/user/avatar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, avatar: type }),
-      });
-      if (res.ok) {
-        onUpdateUser({ ...user, avatar: type });
-      }
-    } catch (e) {
-      console.error(e);
-    }
+  const handleAvatarChange = (type: 'boy' | 'girl') => {
+    onUpdateUser({ ...user, avatar: type });
   };
 
   // Simulate friend referral signing up to earn +100 credits for both!
-  const handleSimulateFriendReferral = async () => {
+  const handleSimulateFriendReferral = () => {
     setSimulatingReferral(true);
-    try {
-      const friendEmail = `friend.${Date.now()}@example.com`;
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: friendEmail,
-          password: 'password123',
-          name: 'Pooja Verma',
-          avatar: 'girl',
-          referralCode: user.referralCode,
-        }),
-      });
-      if (res.ok) {
-        // Fetch updated user
-        const uRes = await fetch(`/api/user/${encodeURIComponent(user.email)}`);
-        const updated = await uRes.json();
-        onUpdateUser(updated);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
+    const updatedCredits = user.credits + 100;
+    const updatedReferred = (user.referredCount || 0) + 1;
+    let newBadge = user.badge;
+    if (updatedCredits >= 300) newBadge = 'Gold';
+    else if (updatedCredits >= 150) newBadge = 'Silver';
+    else if (updatedCredits >= 50) newBadge = 'Bronze';
+
+    const optimisticUser: UserProfile = {
+      ...user,
+      credits: updatedCredits,
+      referredCount: updatedReferred,
+      badge: newBadge,
+    };
+    setTimeout(() => {
+      onUpdateUser(optimisticUser);
       setSimulatingReferral(false);
-    }
+    }, 300);
   };
 
   // Complete a session: logs 2 hours, +50 credits, unlocks benefits!
-  const handleCompleteSession = async (sessionId?: string) => {
+  const handleCompleteSession = (sessionId?: string) => {
     setCompletingSessionId(sessionId || 'instant');
-    try {
-      const res = await fetch('/api/volunteer/complete-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email,
-          sessionId,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.user) {
-        onUpdateUser(data.user);
+
+    const addCredits = 50;
+    const addHours = 2;
+    const newTotalCredits = user.credits + addCredits;
+    const newTotalHours = user.verifiedHours + addHours;
+    const newSessionsCount = user.completedSessionsCount + 1;
+    let newBadge = user.badge;
+    if (newTotalCredits >= 300) newBadge = 'Gold';
+    else if (newTotalCredits >= 150) newBadge = 'Silver';
+    else if (newTotalCredits >= 50) newBadge = 'Bronze';
+
+    const updatedSessions = user.sessions.map((s) => {
+      if (s.id === sessionId) {
+        return {
+          ...s,
+          status: 'Completed' as const,
+          hours: addHours,
+          creditsEarned: addCredits,
+          completedAt: new Date().toISOString(),
+        };
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
+      return s;
+    });
+
+    const updatedUser: UserProfile = {
+      ...user,
+      credits: newTotalCredits,
+      verifiedHours: newTotalHours,
+      completedSessionsCount: newSessionsCount,
+      badge: newBadge,
+      sessions: updatedSessions,
+    };
+
+    setTimeout(() => {
+      onUpdateUser(updatedUser);
       setCompletingSessionId(null);
-    }
+    }, 300);
   };
 
   return (

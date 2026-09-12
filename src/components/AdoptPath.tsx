@@ -13,6 +13,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { AdoptionCenter, AgeRangeLabel } from '../types';
+import { INITIAL_ADOPTION_CENTERS } from '../data/seedData';
 
 interface AdoptPathProps {
   onSelectCenter: (center: AdoptionCenter) => void;
@@ -65,31 +66,52 @@ export function AdoptPath({ onSelectCenter, onOpenGovGuide }: AdoptPathProps) {
     }
   }, []);
 
-  // Fetch centers from API based on location & filters
+  // Filter & calculate distances client-side for zero latency and rock-solid stability
   useEffect(() => {
-    async function fetchCenters() {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          lat: userCoords.lat.toString(),
-          lng: userCoords.lng.toString(),
-          sort: sortBy,
-          language: filterLanguage,
-          specialNeeds: filterSpecialNeeds,
-          ageRange: filterAgeRange,
-        });
+    try {
+      let list = INITIAL_ADOPTION_CENTERS.map((c) => {
+        const dLat = (c.lat - userCoords.lat) * (Math.PI / 180);
+        const dLon = (c.lng - userCoords.lng) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(userCoords.lat * (Math.PI / 180)) *
+            Math.cos(c.lat * (Math.PI / 180)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const dKm = Math.round(6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))));
+        return { ...c, distanceKm: dKm };
+      });
 
-        const res = await fetch(`/api/centers?${params.toString()}`);
-        const data = await res.json();
-        setCenters(data);
-      } catch (err) {
-        console.error('Failed to fetch adoption centers', err);
-      } finally {
-        setLoading(false);
+      if (filterAgeRange !== 'all') {
+        list = list.filter((c) => c.ageRangeBlocks.some((b) => b.range === filterAgeRange && b.count > 0));
       }
-    }
+      if (filterLanguage !== 'all') {
+        list = list.filter((c) =>
+          c.primaryLanguage?.toLowerCase().includes(filterLanguage.toLowerCase())
+        );
+      }
+      if (filterSpecialNeeds !== 'all') {
+        list = list.filter((c) =>
+          c.ageRangeBlocks.some((b) =>
+            filterSpecialNeeds === 'none'
+              ? b.specialNeeds.toLowerCase().includes('none')
+              : !b.specialNeeds.toLowerCase().includes('none')
+          )
+        );
+      }
 
-    fetchCenters();
+      if (sortBy === 'distance') {
+        list.sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+      } else if (sortBy === 'age') {
+        list.sort((a, b) => b.childrenCount - a.childrenCount);
+      }
+
+      setCenters(list);
+    } catch {
+      setCenters(INITIAL_ADOPTION_CENTERS);
+    } finally {
+      setLoading(false);
+    }
   }, [userCoords, sortBy, filterSpecialNeeds, filterLanguage, filterAgeRange]);
 
   const setCityPreset = (city: string, lat: number, lng: number) => {

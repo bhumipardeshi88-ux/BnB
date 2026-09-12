@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Calendar, Clock, Globe, MapPin, CheckCircle, X } from 'lucide-react';
-import { VolunteerOpportunity } from '../types';
+import { VolunteerOpportunity, VolunteerSession } from '../types';
 
 interface VolunteerSignupModalProps {
   opportunity: VolunteerOpportunity;
@@ -49,37 +49,35 @@ export function VolunteerSignupModal({
     setLoading(true);
     setError(null);
 
-    try {
-      const res = await fetch('/api/volunteer/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userEmail,
-          opportunityId: opportunity.id,
-          opportunityTitle: opportunity.title,
-          date,
-          timeSlot,
-          mode,
-          locationOrCenter:
-            mode === 'Online'
-              ? 'BalSetu Virtual Interactive Classroom'
-              : locationOrCenter || 'Community Children Center',
-          topic: isCustomTopic ? customTopicText.trim() : topic,
-          customTopic: isCustomTopic ? customTopicText.trim() : undefined,
-        }),
-      });
+    // Client-side session creation
+    setTimeout(() => {
+      const newSession: VolunteerSession = {
+        id: `ses-${Date.now()}`,
+        opportunityId: opportunity.id,
+        opportunityTitle: opportunity.title,
+        date,
+        timeSlot,
+        mode,
+        locationOrCenter:
+          mode === 'Online'
+            ? 'BalSetu Virtual Interactive Classroom'
+            : locationOrCenter || 'Community Children Center',
+        topic: isCustomTopic ? customTopicText.trim() : topic,
+        customTopic: isCustomTopic ? customTopicText.trim() : undefined,
+        status: 'Scheduled',
+        hours: 2,
+        creditsEarned: opportunity.creditsReward || 50,
+      };
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to sign up');
-      }
-
-      onSuccess(data.user);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
-    } finally {
+      const saved = localStorage.getItem('balsetu_user');
+      const existing = saved ? JSON.parse(saved) : {};
+      const updatedUser = {
+        ...existing,
+        sessions: [newSession, ...(existing.sessions || [])],
+      };
       setLoading(false);
-    }
+      onSuccess(updatedUser);
+    }, 400);
   };
 
   return (

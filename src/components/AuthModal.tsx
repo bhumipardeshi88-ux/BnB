@@ -1,16 +1,21 @@
 import React from 'react';
 import { ArrowRight, HeartHandshake, ShieldCheck, Sparkles } from 'lucide-react';
-import { UserProfile, DEFAULT_TEST_USER } from '../types';
 
 interface AuthModalProps {
-  onSuccess: (user: UserProfile) => void;
-  onContinueAsGuest?: (guestUser?: UserProfile) => void;
+  onLogin: () => void;
+  onSuccess?: (user?: any) => void;
+  onContinueAsGuest?: () => void;
 }
 
-export function AuthModal({ onSuccess }: AuthModalProps) {
-  const handleLogin = () => {
-    // Instant login directly into the app — no validation, no credentials, no database checks
-    onSuccess(DEFAULT_TEST_USER);
+export function AuthModal({ onLogin, onSuccess }: AuthModalProps) {
+  const handleLoginClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Pure navigation: no API calls, no credentials, no validation, no database checks
+    if (onLogin) {
+      onLogin();
+    } else if (onSuccess) {
+      onSuccess();
+    }
   };
 
   return (
@@ -40,12 +45,12 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
           </p>
         </div>
 
-        {/* Single Log In Button */}
-        <div className="space-y-4">
+        {/* Pure Navigation Log In Button */}
+        <div>
           <button
-            id="auth-single-login-button"
+            id="login-button"
             type="button"
-            onClick={handleLogin}
+            onClick={handleLoginClick}
             className="w-full py-4 px-6 rounded-2xl bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
           >
             <span>Log In</span>

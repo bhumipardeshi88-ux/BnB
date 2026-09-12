@@ -11,7 +11,7 @@ import { DonationModal } from './components/DonationModal';
 import { CertificateModal } from './components/CertificateModal';
 import { LorModal } from './components/LorModal';
 import { GovernmentGuideModal } from './components/GovernmentGuideModal';
-import { AdoptionCenter, UserProfile, VolunteerOpportunity, DEFAULT_GUEST_USER } from './types';
+import { AdoptionCenter, UserProfile, VolunteerOpportunity, DEFAULT_GUEST_USER, DEFAULT_TEST_USER } from './types';
 import { VOLUNTEER_OPPORTUNITIES } from './data/seedData';
 
 type ViewState =
@@ -82,19 +82,20 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLoginSuccess = (authenticatedUser: UserProfile) => {
-    setUser(authenticatedUser);
+  const handleLogin = () => {
+    setUser((prev) => prev || DEFAULT_TEST_USER);
     setHistory([{ type: 'role_select' }]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleContinueAsGuest = (guestUser?: UserProfile) => {
-    const activeGuest = guestUser || DEFAULT_GUEST_USER;
-    setUser(activeGuest);
+  const handleContinueAsGuest = () => {
+    setUser(DEFAULT_GUEST_USER);
     setHistory([{ type: 'role_select' }]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = () => {
-    setUser(null);
+    setUser(DEFAULT_TEST_USER);
     setHistory([{ type: 'auth' }]);
   };
 
@@ -136,7 +137,8 @@ export default function App() {
       <main className="flex-1 pb-16">
         {currentView.type === 'auth' && (
           <AuthModal
-            onSuccess={handleLoginSuccess}
+            onLogin={handleLogin}
+            onSuccess={handleLogin}
             onContinueAsGuest={handleContinueAsGuest}
           />
         )}
