@@ -1,0 +1,6 @@
+{
+  "name": "BalSetu",
+  "description": "Connecting parents with adoption centers and volunteers with children's education.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
