@@ -119,7 +119,7 @@ export const DEFAULT_GUEST_USER: UserProfile = {
 
 export const DEFAULT_TEST_USER: UserProfile = {
   id: 'usr-test-abcd',
-  email: 'abcd',
+  email: 'abcd@gmail.com',
   name: 'Test Explorer (abcd)',
   avatar: 'boy',
   referralCode: 'BAL-ABCD01',

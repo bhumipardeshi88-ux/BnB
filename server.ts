@@ -9,9 +9,14 @@ const usersDb = new Map<string, UserProfile>();
 const centersDb: AdoptionCenter[] = JSON.parse(JSON.stringify(INITIAL_ADOPTION_CENTERS));
 const appointmentsDb: AppointmentBooking[] = [];
 
-// Seed the prototype test account (Email: abcd, Password: abcd)
+// Seed the prototype test account (Email: abcd@gmail.com / abcd, Password: abcd)
+usersDb.set('abcd@gmail.com', {
+  ...DEFAULT_TEST_USER,
+  email: 'abcd@gmail.com',
+});
 usersDb.set('abcd', {
   ...DEFAULT_TEST_USER,
+  email: 'abcd@gmail.com',
 });
 
 // Seed an initial demo user so reviewers can test immediately
@@ -125,12 +130,12 @@ async function startServer() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Prototype test account bypass: email "abcd" and password "abcd"
-    if (normalizedEmail === 'abcd' && password.trim() === 'abcd') {
-      let testUser = usersDb.get('abcd');
+    // Prototype test account bypass: email "abcd@gmail.com" / "abcd" and password "abcd"
+    if ((normalizedEmail === 'abcd@gmail.com' || normalizedEmail === 'abcd') && password.trim() === 'abcd') {
+      let testUser = usersDb.get('abcd@gmail.com') || usersDb.get('abcd');
       if (!testUser) {
-        testUser = { ...DEFAULT_TEST_USER };
-        usersDb.set('abcd', testUser);
+        testUser = { ...DEFAULT_TEST_USER, email: 'abcd@gmail.com' };
+        usersDb.set('abcd@gmail.com', testUser);
       }
       return res.json({ success: true, user: testUser });
     }

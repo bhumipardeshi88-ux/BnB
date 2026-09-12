@@ -59,14 +59,15 @@ export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.trim();
 
-    // Prototype test account bypass: email "abcd" and password "abcd"
-    if (normalizedEmail === 'abcd' && normalizedPassword === 'abcd') {
+    // Prototype test account bypass: email "abcd@gmail.com" or "abcd" and password "abcd"
+    const isTestEmail = normalizedEmail === 'abcd@gmail.com' || normalizedEmail === 'abcd';
+    if (isTestEmail && normalizedPassword === 'abcd') {
       setLoading(true);
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'abcd', password: 'abcd' }),
+          body: JSON.stringify({ email: normalizedEmail, password: 'abcd' }),
         });
         const data = await res.json();
         if (res.ok && data.user) {
@@ -78,7 +79,7 @@ export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
       } finally {
         setLoading(false);
       }
-      onSuccess(DEFAULT_TEST_USER);
+      onSuccess({ ...DEFAULT_TEST_USER, email: 'abcd@gmail.com' });
       return;
     }
 
@@ -131,8 +132,8 @@ export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
       setLoading(false);
     }
 
-    if (demoEmail === 'abcd') {
-      onSuccess(DEFAULT_TEST_USER);
+    if (demoEmail === 'abcd@gmail.com' || demoEmail === 'abcd') {
+      onSuccess({ ...DEFAULT_TEST_USER, email: 'abcd@gmail.com' });
     }
   };
 
@@ -212,15 +213,15 @@ export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
             <span className="text-[10px] text-amber-700">Optional</span>
           </div>
 
-          {/* Prototype Test Account abcd */}
+          {/* Prototype Test Account abcd@gmail.com */}
           <button
             id="demo-test-abcd-btn"
             type="button"
-            onClick={() => handleDemoLogin('abcd', 'abcd')}
+            onClick={() => handleDemoLogin('abcd@gmail.com', 'abcd')}
             className="w-full mb-2 px-3 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white hover:bg-amber-700 transition-colors active:scale-98 shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Login with Test Account (abcd / abcd)</span>
+            <span>Login with Test Account (abcd@gmail.com / abcd)</span>
           </button>
 
           <div className="grid grid-cols-2 gap-2">
@@ -319,7 +320,7 @@ export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="abcd or you@example.com"
+                placeholder="abcd@gmail.com or you@example.com"
                 className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-hidden transition-all bg-white"
               />
             </div>
@@ -346,12 +347,12 @@ export function AuthModal({ onSuccess, onContinueAsGuest }: AuthModalProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('abcd');
+                  setEmail('abcd@gmail.com');
                   setPassword('abcd');
                 }}
                 className="text-amber-700 font-semibold hover:underline cursor-pointer"
               >
-                Autofill "abcd" / "abcd"
+                Autofill "abcd@gmail.com" / "abcd"
               </button>
             </div>
           </div>
